@@ -3,20 +3,21 @@
 #define levmax 3
 #define amax 2047
 #define stacksize 500
+#define numShowStack 7
 
-// Enumeração para as funções de instrução
+// instruções
 typedef enum {
     lit, opr, lod, sto, cal, intt, jmp, jpc
 } fct;
 
-// Estrutura para representar uma instrução
+// uma instrução
 typedef struct {
     fct f;
     int l;
     int a;
 } instruction;
 
-// Array de instruções
+// código atual
 instruction code[] = {
     {intt, 0, 3},  // 1.  separa 3 espaços na memoria para as variáveis obrigatórias
     {lit, 0, 0},   // 2.  coloca 0 em 'somador'
@@ -37,116 +38,144 @@ instruction code[] = {
     {opr, 0, 0},   // 17. FIM
 };
 
-// Função para interpretar e executar as instruções
+void inicializaPilha(int pilha[]){
+    for (int i = 1; i <= numShowStack; i++){
+        pilha[i]=0;
+    }
+}
+
+void exibePilha(int pilha[]){
+    for(int x=1; x<=numShowStack; x++){
+        printf("%4d   ", pilha[x]);
+    }
+    printf("\n");
+}
+
+void salvaPilha(FILE *arq, int pilha[]){
+    for(int x=1; x<=numShowStack; x++){
+        fprintf(arq, "%d ", pilha[x]);
+    }
+    fprintf(arq, "\n");
+}
+
 void interpret() {
-    int stack[stacksize]; // Pilha de execução
-    int p = 0, b = 0, t = 0; // Contador de programa, base, topo da pilha
-    instruction inst; // Instrução atual
+    int stack[stacksize]; 
+    int p = 0, b = 0, t = 0; // linha do programa, base, topo da pilha
+    instruction inst;
 
     // Inicialização da pilha
-    stack[1] = stack[2] = stack[3] = 0;
+    inicializaPilha(stack);
 
-    // Loop principal
+    printf("valores iniciais              p      b      t      stack\n");
+    printf("                           %4d   %4d   %4d   ", p, b, t);
+    exibePilha(stack);
+    printf("\n");
+
+    printf("codigo                        p      b      t      stack\n");
+    FILE *arq = fopen("dadosQst1.csv","w");
+    fprintf(arq, "codigo, p, b, t, stack\n");
     do {
-        // Obtém a próxima instrução
+        // próxima instrução
         inst = code[p++];
 
-        printf("------------------------Antes---------------------------\n");
-        printf("p: %d\n", p);
-        printf("b: %d\n", b);
-        printf("t: %d\n", t);
-        printf("stack: ");
-        for (int x=1; x<=10; x++) printf("%d ", stack[x]);
-        printf("\n========================================================\n");
 
-        // Switch para lidar com diferentes funções de instrução
         switch (inst.f) {
             case lit:
                 // Empilha um valor no topo da pilha
+                printf(" lit  ");
+                fprintf(arq, "lit");
                 t++;
                 stack[t] = inst.a;
                 break;
             case opr:
+                printf(" opr  ");
+                fprintf(arq, "opr");
                 // Operações aritméticas e lógicas
                 switch (inst.a) {
                     case 0:
-                        // Retorna de uma chamada de procedimento
+                        // return
                         t = b;
                         p = stack[t + 3];
                         b = stack[t + 2];
                         break;
                     case 1:
-                        // Negativo
+                        // negativo 
                         stack[t] = -stack[t];
                         break;
                     case 2:
-                        // Adição
+                        // printf("soma");
                         t--;
                         stack[t] += stack[t + 1];
                         break;
                     case 3:
-                        // Subtração
+                        // printf("subtração");
                         t--;
                         stack[t] -= stack[t + 1];
                         break;
                     case 4:
-                        // Multiplicação
+                        // printf("multiplicação");
                         t--;
                         stack[t] *= stack[t + 1];
                         break;
                     case 5:
-                        // Divisão
+                        // printf("divisão");
                         t--;
                         stack[t] /= stack[t + 1];
                         break;
                     case 6:
-                        // Módulo 2 (verifica se é ímpar)
+                        // printf("paridade");
                         stack[t] = stack[t] % 2;
                         break;
                     case 8:
-                        // Igualdade
+                        // printf("igualdade");
                         t--;
                         stack[t] = (stack[t] == stack[t + 1]);
                         break;
                     case 9:
-                        // Desigualdade
+                        // printf("desigualdade");
                         t--;
                         stack[t] = (stack[t] != stack[t + 1]);
                         break;
                     case 10:
-                        // Menor que
+                        // printf("menor que");
                         t--;
                         stack[t] = (stack[t] < stack[t + 1]);
                         break;
                     case 11:
-                        // Maior ou igual a
+                        // printf("maior ou igual");
                         t--;
                         stack[t] = (stack[t] >= stack[t + 1]);
                         break;
                     case 12:
-                        // Maior que
+                        // printf("maior que");
                         t--;
                         stack[t] = (stack[t] > stack[t + 1]);
                         break;
                     case 13:
-                        // Menor ou igual a
+                        // printf("menor ou igual a");
                         t--;
                         stack[t] = (stack[t] <= stack[t + 1]);
                         break;
                 }
                 break;
             case lod:
-                // Carrega um valor da memória para a pilha
+                printf(" lod  ");
+                fprintf(arq, "lod");
+                // valor da memória para a pilha
                 t++;
                 stack[t] = stack[b + inst.a];
                 break;
             case sto:
-                // Armazena um valor da pilha na memória
+                printf(" sto  ");
+                fprintf(arq, "sto");
+                // valor da pilha na memória
                 stack[b + inst.a] = stack[t];
                 t--;
                 break;
             case cal:
-                // Chama um procedimento, gerando um novo bloco de execução
+                printf(" cal  ");
+                fprintf(arq, "cal");
+                // chama uma função
                 stack[t + 1] = b;
                 stack[t + 2] = p;
                 stack[t + 3] = b;
@@ -154,14 +183,20 @@ void interpret() {
                 p = inst.a;
                 break;
             case intt:
+                printf("intt  ");
+                fprintf(arq, "intt");
                 // Incrementa o topo da pilha por um valor
                 t += inst.a;
                 break;
             case jmp:
+                printf(" jmp  ");
+                fprintf(arq, "jmp");
                 // Salto incondicional para uma posição na memória
                 p = inst.a;
                 break;
             case jpc:
+                printf(" jpc  ");
+                fprintf(arq, "jpc");
                 // Salto condicional se o topo da pilha for zero
                 if (stack[t] == 0) {
                     p = inst.a;
@@ -170,20 +205,20 @@ void interpret() {
                 break;
         }
 
-        printf("-----------------------Depois---------------------------\n");
-        printf("p: %d\n", p);
-        printf("b: %d\n", b);
-        printf("t: %d\n", t);
-        printf("stack: ");
-        for (int x=1; x<=10; x++) printf("%d ", stack[x]);
-        printf("\n--------------------------------------------------------\n");
-        // scanf("%*c");
+        printf("%2d %2d", inst.l, inst.a);
+        printf("                ");
+        printf("%4d   %4d   %4d   ", p, b, t);
+        exibePilha(stack);
+
+        fprintf(arq, " %d %d, %d, %d, %d, ", inst.l, inst.a, p, b, t);
+        salvaPilha(arq, stack);
+        
     } while (p != 0);
 
     printf("end pl/0\n");
+    fclose(arq);
 }
 
-// Função principal
 int main() {
     printf("start pl/0\n");
     interpret();
