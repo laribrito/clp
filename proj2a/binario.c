@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* ehBinario(const char* str) { 
+const char* ehBinario(const char* str) { 
     const char* retorno = NULL;
     for (int c = 0; str[c] != '\0'; c++) {
         if (str[c] != '0' && str[c] != '1') {
